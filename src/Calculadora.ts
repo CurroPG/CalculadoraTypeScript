@@ -1,5 +1,4 @@
 export class Calculadora {
-    // Cada instancia tiene SU PROPIO estado (antes eran variables globales compartidas)
     private currentInput = '0';
     private lastInput = '0';
     private operation = '';
@@ -51,7 +50,7 @@ export class Calculadora {
       </div>
     `;
 
-        // Buscamos dentro de this.root, NO en document: así solo encuentra lo suyo
+        // Buscamos dentro de this.root, NO en document: asi solo encuentra lo suyo
         this.display = this.root.querySelector<HTMLInputElement>('.display-input')!;
 
         this.registrarEventos();
@@ -74,7 +73,7 @@ export class Calculadora {
         this.root.querySelector('.equals')?.addEventListener('click', () => this.igual());
     }
 
-    // ---------- Lógica (la misma del profe, pero con this.) ----------
+    // ---------- Logica  ----------
 
     private actualizarDisplay(): void {
         this.display.value = this.currentInput;
