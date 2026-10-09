@@ -2,7 +2,6 @@ import { fromEvent, interval, merge, Subscription } from 'rxjs';
 import { take } from 'rxjs/operators';
 
 export class Cronometro {
-    // ZONA 1: campos
     private root: HTMLElement;
     private display: HTMLDivElement;
     private btnIniciar: HTMLButtonElement;
@@ -11,9 +10,8 @@ export class Cronometro {
     private inputMinutos: HTMLInputElement;
     private inputSegundos: HTMLInputElement;
     private cuentaAtras: Subscription | null = null;
-    private tiempoRestante = 10;   // en segundos (de prueba)
+    private tiempoRestante = 10;
 
-    // ZONA 2: constructor
     constructor(id: string) {
         const root = document.getElementById(id);
         if (!root) {
@@ -62,8 +60,7 @@ export class Cronometro {
             this.reiniciar();
         });
     }
-
-    // ZONA 3: métodos
+    
     private pintar(): void {
         const h = Math.floor(this.tiempoRestante / 3600);
         const m = Math.floor((this.tiempoRestante % 3600) / 60);
