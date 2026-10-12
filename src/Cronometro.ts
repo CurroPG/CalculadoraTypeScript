@@ -1,17 +1,17 @@
-import { fromEvent, interval, merge, Subscription } from 'rxjs';
-import { take } from 'rxjs/operators';
+import { interval, fromEvent, Subscription } from 'rxjs';
 
 export class Cronometro {
+    // ZONA 1: campos
     private root: HTMLElement;
     private display: HTMLDivElement;
     private btnIniciar: HTMLButtonElement;
     private btnReiniciar: HTMLButtonElement;
-    private inputHoras: HTMLInputElement;
-    private inputMinutos: HTMLInputElement;
-    private inputSegundos: HTMLInputElement;
-    private cuentaAtras: Subscription | null = null;
-    private tiempoRestante = 10;
 
+    private tiempoAcumulado = 0;
+    private momentoInicio = 0;
+    private cuenta: Subscription | null = null;
+
+    // ZONA 2: constructor
     constructor(id: string) {
         const root = document.getElementById(id);
         if (!root) {
@@ -22,98 +22,69 @@ export class Cronometro {
         this.root.innerHTML = `
         <div>
             <h1>Cronómetro</h1>
-            <div class="cronometro">
-                <div class="crono-display">00:00:00</div>
-
-                <input type="number" class="crono-horas" min="0" max="99" value="0" />
-                <input type="number" class="crono-minutos" min="0" max="59" value="0" />
-                <input type="number" class="crono-segundos" min="0" max="59" value="0" />
-
-                <button class="crono-iniciar">Iniciar</button>
-                <button class="crono-reiniciar">Reiniciar</button>
+            <div class="cronometro-panel">
+                <div class="cronometro-display">00:00:00.00</div>
+                <div class="cronometro-botones">
+                    <button class="cronometro-iniciar">Iniciar</button>
+                    <button class="cronometro-reiniciar">Reiniciar</button>
+                </div>
             </div>
         </div>
         `;
 
-        this.display = this.root.querySelector<HTMLDivElement>('.crono-display')!;
-        this.btnIniciar = this.root.querySelector<HTMLButtonElement>('.crono-iniciar')!;
-        this.btnReiniciar = this.root.querySelector<HTMLButtonElement>('.crono-reiniciar')!;
-        this.inputHoras = this.root.querySelector<HTMLInputElement>('.crono-horas')!;
-        this.inputMinutos = this.root.querySelector<HTMLInputElement>('.crono-minutos')!;
-        this.inputSegundos = this.root.querySelector<HTMLInputElement>('.crono-segundos')!;
+        this.display = this.root.querySelector<HTMLDivElement>('.cronometro-display')!;
+        this.btnIniciar = this.root.querySelector<HTMLButtonElement>('.cronometro-iniciar')!;
+        this.btnReiniciar = this.root.querySelector<HTMLButtonElement>('.cronometro-reiniciar')!;
 
         this.pintar();
+
         fromEvent(this.btnIniciar, 'click').subscribe(() => {
-            if (this.cuentaAtras == null)
-                this.iniciar();
+            if (this.cuenta == null) this.iniciar();
             else this.pausar();
         });
-        merge(
-            fromEvent(this.inputHoras, 'input'),
-            fromEvent(this.inputMinutos, 'input'),
-            fromEvent(this.inputSegundos, 'input'),
-        ).subscribe(() => {
-            this.tiempoRestante = this.leerInputs();
-            this.pintar();
-        });
+
         fromEvent(this.btnReiniciar, 'click').subscribe(() => {
             this.reiniciar();
         });
     }
-    
-    private pintar(): void {
-        const h = Math.floor(this.tiempoRestante / 3600);
-        const m = Math.floor((this.tiempoRestante % 3600) / 60);
-        const s = this.tiempoRestante % 60;
 
-        this.display.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    }
-
+    // ZONA 3: métodos
     private iniciar(): void {
-        if (this.cuentaAtras == null && this.tiempoRestante != 0) {
-            this.cuentaAtras = interval(1000).pipe(take(this.tiempoRestante)).subscribe({
-                next: () => {
-                    this.tiempoRestante--;
-                    this.pintar();
-                },
-                complete: () => {
-                    this.cuentaAtras = null;
-                    this.btnIniciar.textContent = "Iniciar";
-                    this.bloquearInputs(false);
-                }
-            });
-            this.btnIniciar.textContent = "Pausar";
-            this.bloquearInputs(true);
-        } else return;
+        if (this.cuenta != null) return;
+        this.momentoInicio = Date.now() - this.tiempoAcumulado;
+
+        this.cuenta = interval(10).subscribe(() => {
+            this.tiempoAcumulado = Date.now() - this.momentoInicio;
+            this.pintar();
+        });
+
+        this.btnIniciar.textContent = "Pausar";
     }
 
     private pausar(): void {
-        this.cuentaAtras?.unsubscribe();
-        this.cuentaAtras = null;
+        this.tiempoAcumulado = Date.now() - this.momentoInicio;
+        this.cuenta?.unsubscribe();
+        this.cuenta = null;
         this.btnIniciar.textContent = "Reanudar";
-        this.bloquearInputs(false);
-    }
-
-    private leerInputs(): number {
-        const h = Number(this.inputHoras.value);
-        const m = Number(this.inputMinutos.value);
-        const s = Number(this.inputSegundos.value);
-
-        return (h * 3600) + (m * 60) + s;
-    }
-
-    private bloquearInputs(bloquear: boolean): void {
-        this.inputHoras.disabled = bloquear;
-        this.inputMinutos.disabled = bloquear;
-        this.inputSegundos.disabled = bloquear;
+        this.pintar();
     }
 
     private reiniciar(): void {
-        this.cuentaAtras?.unsubscribe();
-        this.cuentaAtras = null;
-        this.tiempoRestante = this.leerInputs();
+        this.cuenta?.unsubscribe();
+        this.cuenta = null;
+        this.tiempoAcumulado = 0;
         this.btnIniciar.textContent = "Iniciar";
         this.pintar();
-        this.bloquearInputs(false);
+    }
+
+    private pintar(): void {
+        const totalSegundos = Math.floor(this.tiempoAcumulado / 1000);
+        const h = Math.floor(totalSegundos / 3600);
+        const m = Math.floor((totalSegundos % 3600) / 60);
+        const s = totalSegundos % 60;
+        const cs = Math.floor((this.tiempoAcumulado % 1000) / 10);   // centésimas
+
+        const dosCifras = (n: number) => n.toString().padStart(2, '0');
+        this.display.textContent = `${dosCifras(h)}:${dosCifras(m)}:${dosCifras(s)}.${dosCifras(cs)}`;
     }
 }
